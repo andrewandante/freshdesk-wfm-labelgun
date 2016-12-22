@@ -1,0 +1,6 @@
+dist
+work
+build
+.frsh
+.idea
+config/iparam_test_data.yml

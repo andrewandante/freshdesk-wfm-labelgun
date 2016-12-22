@@ -1,0 +1,10 @@
+wfm_api_key:
+    display_name: "Workflow Max Api Key"
+    description: "Please enter the WFM API key"
+    type: "text"
+    required: true
+wfm_acc_key:
+    display_name: "Workflow Max Account Key"
+    description: "Please enter the WFM account key"
+    type: "text"
+    required: "true"
