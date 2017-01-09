@@ -1,3 +1,10 @@
 platform-version: '1.0'
 pages:
   - ticket
+  - contact
+features:
+  - db
+whitelisted-domains:
+  - https://api.workflowmax.com
+  - https://silverstripe.freshdesk.com
+  - https://practicemanager.xero.com

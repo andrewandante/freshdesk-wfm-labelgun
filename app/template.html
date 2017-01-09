@@ -1,10 +1,18 @@
 <div class="widget">
-  <h3>Workflow Max Labeller</h3>
+  <h3>WorkflowMax Task Master</h3>
   <div class="content">
     
     <div class="app-box">
       <div class="logo"></div>
-      <div class="btn" id="labelGun">Apply the label "{{ticket.id}} - {{ticket.subject}}"</div>
+      <div class="holder-client">
+        <h3 class="header-client">Client detected as <a class="wfm-client-link" href=""> EMPTY </a></h3>
+        <div class="btn creator-client">Create a WorkflowMax Client for this company</div>
+        <div class="btn detective-client">Try to detect the WorkflowMax Client for this company</div>
+        <div class="btn confirmer-client">Save the connection to the database</div>
+        <div class="btn warning eraser-client">Delete the client connection from the database</div>
+      </div>
+      <div class="btn labelGun">Create a WorkflowMax Task from this Ticket</div>
+      <div class="info-dump"></div>
     </div>
 
   </div>

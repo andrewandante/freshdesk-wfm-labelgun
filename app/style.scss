@@ -20,15 +20,25 @@
   font-size: 14px;
 }
 
-#labelGun {
+.btn {
   width: 91%;
   background-color: forestgreen;
   border-color: green;
   background-image: none;
   color: white;
   text-shadow: none;
+  margin: 2px;
 }
 
-#labelGun:hover {
+.warning {
+  background-color: darkred;
+  border-color: red;
+}
+
+.warning:hover {
+  background-color: red !important;
+}
+
+.btn:hover {
   background-color: green;
 }
