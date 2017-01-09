@@ -1,8 +1,13 @@
+/**
+ * global: domHelper
+ * global: page_type
+ **/
+
 (function() {
     "use strict";
     return {
         events: [
-            { event: 'click', selector: '.labelGun', callback: 'createTask' },
+            { event: 'click', selector: '.creator-task', callback: 'createTask' },
             { event: 'click', selector: '.creator-client', callback: 'createClient' },
             { event: 'click', selector: '.detective-client', callback: 'detectClient' },
             { event: 'click', selector: '.confirmer-client', callback: 'confirmClient' },
@@ -10,6 +15,11 @@
         ],
         createTask: function() {
             var ticket = domHelper.ticket.getTicketInfo().helpdesk_ticket;
+            if (confirm("This will create a new Task in WorkFlow Max called 'Helpdesk Ticket # "
+                    + ticket.display_id
+                    + "' under the job "
+                    + contact.name
+                    + " as the primary contact. Continue?")
             if (ticket.custom_field !== undefined && ticket.custom_field.wfm_task_id !== undefined) {
                 alert("Job already created!");
             } else {
@@ -28,7 +38,6 @@
             var doc = this;
             var hackCompanyName = document.getElementsByClassName("user-company-name")[0].title;
             var contact = domHelper.contact.getContactInfo().user;
-            console.log(contact);
 
             if (confirm("This will create a new Client in WorkFlow Max called '"
                     + hackCompanyName
@@ -84,10 +93,10 @@
                 { "wfmClientID": detectedClientID, "wfmClientName": detectedClientName })
                 .done(function(data) {
                     doc.updateClientFrontEnd(detectedClientID, detectedClientName);
-                    doc.hideButton("confirmer-client");
-                    doc.hideButton("detective-client");
-                    doc.hideButton("creator-client");
-                    doc.showButton("eraser-client");
+                    doc.hideByClass("confirmer-client");
+                    doc.hideByClass("detective-client");
+                    doc.hideByClass("creator-client");
+                    doc.showByClass("eraser-client");
                     doc.$container.getElementsByClassName("header-client")[0].innerHTML = doc.$container.getElementsByClassName("header-client")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
@@ -114,17 +123,17 @@
                     });
             }
         },
-        hideButton: function(buttonClass) {
-            this.$container.getElementsByClassName(buttonClass)[0].style.display = 'none';
+        hideByClass: function(className) {
+            this.$container.getElementsByClassName(className)[0].style.display = 'none';
         },
-        showButton: function(buttonClass) {
-            this.$container.getElementsByClassName(buttonClass)[0].style.display = '';
+        showByClass: function(className) {
+            this.$container.getElementsByClassName(className)[0].style.display = '';
         },
         hideWrongButtons: function() {
             if (page_type == "ticket") {
-                this.hideButton("holder-client");
+                this.hideByClass("holder-client");
             } else if (page_type == "contact") {
-                this.hideButton("labelGun");
+                this.hideByClass("holder-task");
             }
         },
         checkForConnectedClient: function() {
@@ -133,13 +142,28 @@
             this.$db.get("client:" + clientID)
                 .done(function(data) {
                     doc.updateClientFrontEnd(data.wfmClientID, data.wfmClientName);
-                    doc.hideButton("creator-client");
-                    doc.hideButton("detective-client");
-                    doc.hideButton("confirmer-client");
+                    doc.hideByClass("creator-client");
+                    doc.hideByClass("detective-client");
+                    doc.hideByClass("confirmer-client");
                 })
-                .fail(function(error_data) {
+                .fail(function(err) {
                     doc.$container.getElementsByClassName("header-client")[0].innerHTML = "No client connected.";
-                    doc.hideButton("eraser-client");
+                    doc.hideByClass("eraser-client");
+                });
+        },
+        checkForConnectedTask: function() {
+            var doc = this;
+            var ticketID = domHelper.ticket.getTicketInfo().display_id;
+            this.$db.get("ticket:" + ticketID)
+                .done(function(data) {
+                    if (data.wfmJobID && data.wfmTaskID && data.wfmTaskName) {
+                        doc.updateTaskFrontEnd(data.wfmJobID, data.wfmTaskID, data.wfmTaskName);
+                        doc.hideByClass("creator-task");
+                    }
+                })
+                .fail(function(err) {
+                    doc.$container.getElementsByClassName("header-task")[0].innerHTML = "No task connected.";
+                    doc.hideByClass("eraser-task");
                 });
         },
         updateClientFrontEnd: function(wfmClientID, wfmClientName) {
@@ -155,11 +179,27 @@
             clientHeader.innerHTML = "Client detected as ";
             clientHeader.appendChild(clientLink);
         },
+        updateTaskFrontEnd: function(wfmJobID, wfmTaskID, wfmTaskName) {
+            var taskHeader = document.getElementsByClassName("header-task")[0];
+            var taskLink = document.createElement("a");
+            var wfmTaskURL = "https://my.workflowmax.com/job/jobtaskview.aspx?id=" + wfmTaskID;
+
+            taskLink.className = "wfm-task-link";
+            taskLink.setAttribute("data-wfm-job-id", wfmJobID);
+            taskLink.setAttribute("data-wfm-task-id", wfmTaskID);
+            taskLink.setAttribute("data-wfm-task-name", wfmTaskName);
+            taskLink.href = wfmTaskURL;
+            taskLink.innerHTML = wfmTaskName;
+            taskHeader.innerHTML = "Task detected as ";
+            taskHeader.appendChild(taskLink);
+        },
         initialize: function() {
             this.hideWrongButtons();
-            this.checkForConnectedClient();
-            // console.log(domHelper.ticket.getTicketInfo());
-            // console.log(domHelper.ticket.getContactInfo());
+            if (page_type === "contact") {
+                this.checkForConnectedClient();
+            } else if (page_type === "ticket") {
+                this.checkForConnectedTask();
+            }
         }
     };
 })();
