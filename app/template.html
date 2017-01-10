@@ -1,25 +1,37 @@
-<div class="widget">
-  <h3>WorkflowMax Task Master</h3>
-  <div class="content">
-    
-    <div class="app-box">
-      <div class="logo"></div>
+<div class="widget" id="wfm-task-master">
+    <script src="https://use.fontawesome.com/744bab9ab1.js"></script>
+    <h3>WorkflowMax Task Master</h3>
+    <div class="content">
 
-      <div class="holder-client">
-        <h3 class="header-client">Client detected as <a class="wfm-client-link" href=""> EMPTY </a></h3>
-        <div class="btn creator-client">Create a WorkflowMax Client for this company</div>
-        <div class="btn detective-client">Try to detect the WorkflowMax Client for this company</div>
-        <div class="btn confirmer-client">Save the connection to the database</div>
-        <div class="btn warning eraser-client">Delete the client connection from the database</div>
-      </div>
+        <div class="app-box">
+            <div class="logo"></div>
 
-      <div class="holder-task">
-          <h3 class="header-task">Task detected as <a class="wfm-task-link" href=""> EMPTY </a></h3>
-          <div class="btn creator-task">Create a WorkflowMax Task from this Ticket</div>
-        <div class="info-dump"></div>
-      </div>
+            <div class="holder-client">
+                <h3 class="header-client">Client detected as <a class="wfm-client-link" href=""> EMPTY </a></h3>
+                <div class="btn creator-client"><i class="fa fa-plus" aria-hidden="true"></i>  Create</div>
+                <div class="btn detective-client"><i class="fa fa-refresh" aria-hidden="true"></i>  Detect</div>
+                <div class="btn confirmer-client"><i class="fa fa-floppy-o" aria-hidden="true"></i>  Save</div>
+                <div class="btn warning eraser-client"><i class="fa fa-trash-o" aria-hidden="true"></i>  Reset</div>
+             </div>
+
+            <div class="holder-task">
+                <h3 class="header-task">Task detected: <a class="wfm-task-link" href=""> EMPTY </a></h3>
+                <h4 class="header-task-client"><em>Client detected: <a class="wfm-client-link" href=""> EMPTY </a></em></h4>
+                <div class="btn-group dropdown-job">
+                    <a class="btn dropdown-job-button" data-toggle="dropdown">Select Job...
+                        <span class="caret pull-right"></span></a>
+                    <ul class="dropdown-job-content dropdown-menu"></ul>
+                </div>
+                <div class="btn-group dropdown-task">
+                    <a class="btn dropdown-task-button" data-toggle="dropdown">Select Task...
+                        <span class="caret pull-right"></span></a>
+                    <ul class="dropdown-task-content dropdown-menu"></ul>
+                </div>
+                <div class="btn creator-task"><i class="fa fa-plus" aria-hidden="true"></i>  Create</div>
+                <div class="btn warning eraser-task"><i class="fa fa-trash-o" aria-hidden="true"></i>  Reset</div>
+            </div>
+
+        </div>
 
     </div>
-
-  </div>
 </div>
