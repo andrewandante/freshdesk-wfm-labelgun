@@ -9,7 +9,7 @@ Please note that **logging time should still be done via the official App**. Thi
 Contact Screen
 ==============
 
-![Contact without Client Link](assets/screenshots/contact-no-client.PNG)
+![Contact without Client Link](assets/contact-no-client.PNG)
 
 - **Create** will add a new Client in Workflow Max for the Company that this Contact is from. It will set the Contact as the primary contact in Workflow Max. This is only a skeleton, designed to be properly filled in once you have time. Once created, the connection will be saved to the database.
 
@@ -17,7 +17,7 @@ Contact Screen
 
 - **Save** will confirm the detected client as a link to this Company.
 
-![Contact with saved Client Link](assets/screenshots/contact-saved-client.PNG)
+![Contact with saved Client Link](assets/contact-saved-client.PNG)
 
 - **Reset** will delete the connection information stored in the database, allowing you to detect/create again.
 
@@ -31,7 +31,7 @@ Contact Screen
 Ticket Screen
 =============
 
-![Ticket without task Link](assets/screenshots/ticket-no-task.PNG)
+![Ticket without task Link](assets/ticket-no-task.PNG)
 
 - **Client** is picked up based in the ticket requester
 
@@ -41,7 +41,7 @@ Ticket Screen
 
 - **Create** will add a new Task under the Job selected in the dropdown called "Helpdesk ticket # - {number_of_ticket}"
 
-![Ticket with saved task](assets/screenshots/ticket-saved-task.PNG)
+![Ticket with saved task](assets/ticket-saved-task.PNG)
 
 - **I've spent all day here** is a simple helper button that will log 8 hours for you against this ticket for the day.
 
