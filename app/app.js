@@ -57,7 +57,7 @@
                                         doc.confirmNewTask(taskID, "Helpdesk ticket #", ticket.display_id);
                                     })
                                     .fail(function(err) {
-                                        alert(err);
+                                        alert(err.response);
                                     });
                             }
                         }
@@ -67,7 +67,7 @@
                     }
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -105,7 +105,7 @@
                         doc.confirmClient();
                     })
                     .fail(function(err) {
-                        alert(err);
+                        alert(err.response);
                 });
             }
         },
@@ -125,7 +125,7 @@
                     doc.showByClass("confirmer-client");
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -152,7 +152,7 @@
                     });
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -190,7 +190,7 @@
                     dropdownContent.setAttribute("data-wfm-helpdesk-task-id", helpdeskTaskID);
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         // Helper functions to replace placeholder text and set some data-vars on click
@@ -226,7 +226,7 @@
                     doc.$container.getElementsByClassName("header-client")[0].innerHTML = doc.$container.getElementsByClassName("header-client")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -248,7 +248,7 @@
                     doc.populateTaskDropdown(wfmJobID);
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -281,7 +281,7 @@
                     doc.$container.getElementsByClassName("header-task")[0].innerHTML = doc.$container.getElementsByClassName("header-task")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -311,7 +311,7 @@
                     doc.$container.getElementsByClassName("header-task")[0].innerHTML = doc.$container.getElementsByClassName("header-task")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -334,7 +334,7 @@
                         location.reload();
                     })
                     .fail(function(err) {
-                        alert(err);
+                        alert(err.response);
                     });
             }
         },
@@ -359,7 +359,7 @@
                         location.reload();
                     })
                     .fail(function(err) {
-                        alert(err);
+                        alert(err.response);
                     });
             }
         },
@@ -482,7 +482,7 @@
                     taskHeader.appendChild(taskLink);
                 })
                 .fail(function(err) {
-                    alert(err);
+                    alert(err.response);
                 });
         },
         /**
@@ -529,7 +529,7 @@
                                         doc.$container.getElementsByClassName("ship-it")[0].innerHTML = doc.$container.getElementsByClassName("ship-it")[0].innerHTML.replace("I've spent all day here", "Shipped");
                                     })
                                     .fail(function(err) {
-                                        alert(err);
+                                        alert(err.response);
                                     });
                             }
                         }
@@ -539,7 +539,7 @@
                     }
                 })
                 .fail(function(err) {
-                    alert("Staff ID not found:" + err);
+                    alert("Staff ID not found:" + err.response);
                 });
         },
         /**
