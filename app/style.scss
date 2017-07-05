@@ -124,4 +124,16 @@
   h4 > a:hover {
     color: darken(dodgerblue, 20%);
   }
+
+  .js-wfm-form > ul > li {
+    clear: both;
+    float: left;
+    width: 100%;
+  }
+
+  .js-wfm-form > ul > li > div {
+    clear: both;
+    float: left;
+    width: 96%;
+  }
 }

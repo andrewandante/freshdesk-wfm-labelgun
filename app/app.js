@@ -1,10 +1,10 @@
-(function() {
+(function($) {
     "use strict";
     return {
         events: [
             { event: 'click', selector: '.creator-task', callback: 'createTask' },
-            { event: 'click', selector: '.dropdown-job-item', callback: 'confirmJob' },
-            { event: 'click', selector: '.dropdown-task-item', callback: 'confirmTask' },
+            { event: 'change', selector: '.js-job-selector', callback: 'confirmJob' },
+            { event: 'change', selector: '.js-task-selector', callback: 'confirmTask' },
             { event: 'click', selector: '.eraser-task', callback: 'resetTask' },
             { event: 'click', selector: '.creator-client', callback: 'createClient' },
             { event: 'click', selector: '.detective-client', callback: 'detectClient' },
@@ -12,6 +12,9 @@
             { event: 'click', selector: '.eraser-client', callback: 'resetClient' },
             { event: 'click', selector: '.ship-it', callback: 'shipEight' }
         ],
+        // In-memory storage for tasks and jobs
+        jobs: {},
+        tasks: {},
         /**
          * Function to create a new WFM task based on the job selected in the dropdown and the ticket number
          * Will also save the connection to the database once chosen
@@ -19,46 +22,50 @@
         createTask: function() {
             var doc = this;
             /** global: domHelper */
-            var ticket = domHelper.ticket.getTicketInfo().helpdesk_ticket;
-            var jobName = this.$container.getElementsByClassName("dropdown-job-button")[0].dataset.wfmJobName;
-            var jobID = this.$container.getElementsByClassName("dropdown-job-button")[0].dataset.wfmJobId;
-            var clientName = this.$container.getElementsByClassName("wfm-client-link")[1].dataset.wfmName;
-            var wfmTasksURL = "https://api.workflowmax.com/task.api/list?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
-            var helpdeskTaskID = 0;
-
-            this.$request.get(wfmTasksURL)
+            var ticketID = domHelper.ticket.getTicketInfo().helpdesk_ticket.display_id;
+            this.$db.get( "ticket:" + ticketID + ":job" )
+            .fail(function(err) {
+                alert("Error getting JobID from Database");
+                console.log(err.response);
+            })
+            .done(function(data) {
+                var jobID = data.wfmJobID;
+                var jobName = data.wfmJobName;
+                var wfmTasksURL = "https://api.workflowmax.com/task.api/list?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
+                doc.$request.get(wfmTasksURL)
+                .fail(function(err) {
+                    alert("Error getting WorkflowMax tasks");
+                    console.log(err.response);
+                })
                 .done(function(data) {
-                    var response = new window.DOMParser().parseFromString(data.response, "text/html");
-                    var tasks = response.getElementsByTagName("task");
-                    jQuery(tasks).each(function() {
-                        if ($(this).getElementsByTagName("name")[0].innerHTML.includes("Helpdesk ticket #")) {
-                            helpdeskTaskID = $(this).getElementsByTagName("id")[0].innerHTML;
-
+                    var response = $(data.response);
+                    var tasks = $('tasklist task', response);
+                    var helpdeskTaskID = 0;
+                    tasks.each(function() {
+                        var $this = $(this);
+                        if ($this.find("name").text().includes("Helpdesk ticket #")) {
+                            helpdeskTaskID = $this.find("id").text();
                             if (confirm("This will create a new Task in WorkFlow Max called 'Helpdesk ticket # - "
-                                    + ticket.display_id
-                                    + "' under the job '"
-                                    + jobName
-                                    + "' for the client '"
-                                    + clientName
-                                    + "'. Continue?")) {
+                                + ticketID + "' under the job '" + jobName + "'. Continue?")) {
                                 var wfmURL = "https://api.workflowmax.com/job.api/task?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
                                 var taskXML = "<Task>"
                                     + "<Job>" + jobID + "</Job>"
                                     + "<TaskID>" + helpdeskTaskID + "</TaskID>"
                                     + "<EstimatedMinutes>0</EstimatedMinutes>"
-                                    + "<Label>" + ticket.display_id + "</Label>"
+                                    + "<Label>" + ticketID + "</Label>"
                                     + "<Description>Generated in Freshdesk</Description>"
                                     + "</Task>";
                                 doc.$request.post(wfmURL, {body: taskXML})
-                                    .done(function(data) {
-                                        var response = new window.DOMParser().parseFromString(data.response, "text/html");
-                                        var taskID = response.getElementsByTagName("id")[0].innerHTML;
-                                        doc.updateTaskFrontEnd(taskID, "Helpdesk ticket #", ticket.display_id);
-                                        doc.confirmNewTask(taskID, "Helpdesk ticket #", ticket.display_id);
-                                    })
-                                    .fail(function(err) {
-                                        alert(err.response);
-                                    });
+                                .fail(function(err) {
+                                    alert("Error creating WorkflowMax task");
+                                    console.log(err.response);
+                                })
+                                .done(function(data) {
+                                    var response = $(data.response);
+                                    var taskID = $(response).find("id").text();
+                                    doc.updateTaskFrontEnd(taskID, "Helpdesk ticket #", ticketID);
+                                    doc.confirmNewTask(taskID, "Helpdesk ticket #", ticketID);
+                                });
                             }
                         }
                     });
@@ -66,9 +73,7 @@
                         alert("No Helpdesk Ticket Task found!");
                     }
                 })
-                .fail(function(err) {
-                    alert(err.response);
-                });
+            });
         },
         /**
          * Task to create a skeleton Client in Workflow Max from the contact screen. At the moment, you have to do this
@@ -81,11 +86,8 @@
             /** global: domHelper */
             var contact = domHelper.contact.getContactInfo().user;
 
-            if (confirm("This will create a new Client in WorkFlow Max called '"
-                    + hackCompanyName
-                    + "' with "
-                    + contact.name
-                    + " as the primary contact. Continue?")) {
+            if (confirm("This will create a new Client in WorkFlow Max called '" + hackCompanyName + "' with "
+                + contact.name + " as the primary contact. Continue?")) {
                 var wfmURL = "https://api.workflowmax.com/client.api/add?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
                 var clientXML = "<Client>"
                     + "<Name>" + hackCompanyName + "</Name>"
@@ -105,8 +107,9 @@
                         doc.confirmClient();
                     })
                     .fail(function(err) {
-                        alert(err.response);
-                });
+                        alert("Error creating WorkflowMax client");
+                        console.log(err.response);
+                    });
             }
         },
         /**
@@ -125,7 +128,8 @@
                     doc.showByClass("confirmer-client");
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error detecting WorkflowMax client");
+                    console.log(err.response);
                 });
         },
         /**
@@ -134,25 +138,31 @@
          */
         populateJobDropdown: function(wfmClientID) {
             var wfmURL = "https://api.workflowmax.com/job.api/client/" + wfmClientID + "?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>&query=";
-            var dropdownContent = this.$container.getElementsByClassName("dropdown-job-content")[0];
-
+            var dropdownContent = this.$container.getElementsByClassName("js-job-selector")[0];
+            var doc = this;
             this.$request.get(wfmURL)
                 .done(function(data) {
-                    var response = new window.DOMParser().parseFromString(data.response, "text/html");
-                    var jobs = response.getElementsByTagName("Job");
-                    jQuery(jobs).each(function() {
-                        var wfmJobID = $(this).getElementsByTagName("ID")[0].innerHTML;
-                        var wfmJobName = $(this).getElementsByTagName("Name")[0].innerHTML;
-                        var dropdownOption = document.createElement("li");
-                        dropdownOption.className = "dropdown-job-item dropdown-item";
-                        dropdownOption.setAttribute("data-wfm-job-id", wfmJobID);
-                        dropdownOption.setAttribute("data-wfm-job-name", wfmJobName);
-                        dropdownOption.innerHTML = wfmJobID + ": " + wfmJobName;
-                        dropdownContent.appendChild(dropdownOption);
+                    var response = $(data.response);
+                    var jobs = $('Jobs Job', response);
+                    jobs.each(function() {
+                        var $this = $(this);
+                        if ($this.find('State').text() === "In Progress") {
+                            var wfmJobID = $this.children('ID').text();
+                            var wfmJobName = $this.children('Name').text();
+                            doc.jobs[wfmJobID] = wfmJobName;
+                            var dropdownOption = $('<option>', {
+                                'value': wfmJobID
+                            });
+                            dropdownOption.text(wfmJobID + ": " + wfmJobName);
+                            $(dropdownContent).append(dropdownOption);
+                        }
                     });
+                    $(dropdownContent).children().first().text('Please select a Job');
+                    $(dropdownContent).select2();
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error populating WorkflowMax Job dropdown");
+                    console.log(err.response);
                 });
         },
         /**
@@ -161,36 +171,37 @@
          */
         populateTaskDropdown: function(wfmJobID) {
             var wfmURL = "https://api.workflowmax.com/job.api/get/" + wfmJobID + "?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
-            var dropdownContent = this.$container.getElementsByClassName("dropdown-task-content")[0];
-
+            var dropdownContent = this.$container.getElementsByClassName("js-task-selector")[0];
+            var doc = this;
             this.$request.get(wfmURL)
                 .done(function(data) {
-                    var response = new window.DOMParser().parseFromString(data.response, "text/html");
-                    var tasks = response.getElementsByTagName("Task");
+                    var response = $(data.response);
+                    var tasks = $('Tasks Task', response);
                     var helpdeskTaskID = 0;
-                    jQuery(tasks).each(function() {
-                        var wfmTaskID = $(this).getElementsByTagName("ID")[0].innerHTML;
-                        var wfmTaskName = $(this).getElementsByTagName("Name")[0].innerHTML;
+                    tasks.each(function() {
+                        var $this = $(this);
+                        var wfmTaskID = $this.children('ID').text();
+                        var wfmTaskName = $this.children('Name').text();
                         if (wfmTaskName.includes("Helpdesk ticket #")) {
                             helpdeskTaskID = wfmTaskID;
                         }
-                        var dropdownOption = document.createElement("li");
-                        dropdownOption.className = "dropdown-task-item dropdown-item";
-                        dropdownOption.setAttribute("data-wfm-task-id", wfmTaskID);
-                        dropdownOption.setAttribute("data-wfm-task-name", wfmTaskName);
-                        dropdownOption.innerHTML = "ID" + wfmTaskID + ": " + wfmTaskName;
+                        doc.tasks[wfmTaskID] = wfmTaskName;
+                        var dropdownOption = $('<option>', {
+                            'value': wfmTaskID
+                        });
+                        dropdownOption.text(wfmTaskID + ": " + wfmTaskName);
 
-                        if ($(this).getElementsByTagName("Label")[0] !== undefined) {
-                            var wfmTaskLabel = $(this).getElementsByTagName("Label")[0].innerHTML;
-                            dropdownOption.setAttribute("data-wfm-task-label", wfmTaskLabel);
-                            dropdownOption.innerHTML += wfmTaskLabel;
+                        if ($this.children('Label') !== undefined) {
+                            dropdownOption.text += $this.children('Label').text();
                         }
-                        dropdownContent.appendChild(dropdownOption);
+                        $(dropdownContent).append(dropdownOption);
                     });
-                    dropdownContent.setAttribute("data-wfm-helpdesk-task-id", helpdeskTaskID);
+                    $(dropdownContent).children().first().text('Please select a Task');
+                    $(dropdownContent).select2();
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error populating WorkflowMax task dropdown");
+                    console.log(err.response);
                 });
         },
         // Helper functions to replace placeholder text and set some data-vars on click
@@ -226,7 +237,8 @@
                     doc.$container.getElementsByClassName("header-client")[0].innerHTML = doc.$container.getElementsByClassName("header-client")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error confirming WorkflowMax client");
+                    console.log(err.response);
                 });
         },
         /**
@@ -234,9 +246,9 @@
          * @param event - the click event ie you picking something in the dropdown
          */
         confirmJob: function(event) {
-            var wfmJobID = event.target.dataset.wfmJobId;
-            var wfmJobName = event.target.dataset.wfmJobName;
             var doc = this;
+            var wfmJobID = $(event.target).val();
+            var wfmJobName = doc.jobs[wfmJobID];
             /** global: domHelper */
             var ticketID = domHelper.ticket.getTicketInfo().helpdesk_ticket.display_id;
 
@@ -244,11 +256,11 @@
                 { "wfmJobID": wfmJobID, "wfmJobName" : wfmJobName })
                 .done(function() {
                     doc.showByClass("creator-task");
-                    doc.updateJobDropdown(wfmJobID, wfmJobName);
                     doc.populateTaskDropdown(wfmJobID);
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error confirming WorkflowMax job");
+                    console.log(err.response);
                 });
         },
         /**
@@ -257,14 +269,14 @@
          * @param event - the click event ie you picking something in the dropdown
          */
         confirmTask: function(event) {
-            var wfmTaskID = event.target.dataset.wfmTaskId;
-            var wfmTaskName = event.target.dataset.wfmTaskName;
-            if (event.target.dataset.wfmTaskLabel !== undefined) {
-                var wfmTaskLabel = event.target.dataset.wfmTaskLabel;
+            var doc = this;
+            var wfmTaskID = $(event.target).val();
+            var wfmTaskName = doc.tasks[wfmTaskID];
+            if ($(event.target).data('wfm-task-label') !== undefined) {
+                var wfmTaskLabel = $(event.target).data('wfm-task-label');
             } else {
                 wfmTaskLabel = "";
             }
-            var doc = this;
             /** global: domHelper */
             var ticketID = domHelper.ticket.getTicketInfo().helpdesk_ticket.display_id;
 
@@ -272,8 +284,8 @@
                 { "wfmTaskID": wfmTaskID, "wfmTaskName": wfmTaskName, "wfmTaskLabel": wfmTaskLabel })
                 .done(function() {
                     doc.hideByClass("creator-task");
-                    doc.hideByClass("dropdown-job");
-                    doc.hideByClass("dropdown-task");
+                    doc.hideByClass("js-job-selector");
+                    doc.hideByClass("js-task-selector");
                     doc.showByClass("ship-it");
                     doc.showByClass("eraser-task");
                     doc.updateTaskFrontEnd(wfmTaskID, wfmTaskName, wfmTaskLabel);
@@ -281,7 +293,8 @@
                     doc.$container.getElementsByClassName("header-task")[0].innerHTML = doc.$container.getElementsByClassName("header-task")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error confirming WorkflowMax job");
+                    console.log(err.response);
                 });
         },
         /**
@@ -302,8 +315,8 @@
                 { "wfmTaskID": wfmTaskID, "wfmTaskName": wfmTaskName, "wfmTaskLabel": wfmTaskLabel })
                 .done(function() {
                     doc.hideByClass("creator-task");
-                    doc.hideByClass("dropdown-job");
-                    doc.hideByClass("dropdown-task");
+                    doc.hideByClass("js-job-selector");
+                    doc.hideByClass("js-task-selector");
                     doc.showByClass("eraser-task");
                     doc.showByClass("ship-it");
                     doc.updateTaskFrontEnd(wfmTaskID, wfmTaskName, wfmTaskLabel);
@@ -311,7 +324,8 @@
                     doc.$container.getElementsByClassName("header-task")[0].innerHTML = doc.$container.getElementsByClassName("header-task")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error confirming new WorkflowMax task");
+                    console.log(err.response);
                 });
         },
         /**
@@ -324,17 +338,15 @@
             var companyID = domHelper.contact.getContactInfo().customer_id;
             var detectedClientName = wfmLink.dataset.wfmName;
 
-            if (confirm("Are you sure you want to erase the connection between the company '"
-                    + hackCompanyName
-                    + "' and the WorkFlow Max Client '"
-                    + detectedClientName
-                    + "'?")) {
+            if (confirm("Are you sure you want to erase the connection between the company '" + hackCompanyName
+                    + "' and the WorkFlow Max Client '" + detectedClientName + "'?")) {
                 this.$db.delete ( "client:" + companyID)
                     .done(function() {
                         location.reload();
                     })
                     .fail(function(err) {
-                        alert(err.response);
+                        alert("Error resetting WorkflowMax client");
+                        console.log(err.response);
                     });
             }
         },
@@ -359,7 +371,8 @@
                         location.reload();
                     })
                     .fail(function(err) {
-                        alert(err.response);
+                        alert("Error resetting WorkflowMax task");
+                        console.log(err.response);
                     });
             }
         },
@@ -419,8 +432,7 @@
                     if (data.wfmTaskID && data.wfmTaskName) {
                         doc.updateTaskFrontEnd(data.wfmTaskID, data.wfmTaskName, data.wfmTaskLabel);
                         doc.hideByClass("creator-task");
-                        doc.hideByClass("dropdown-job");
-                        doc.hideByClass("dropdown-task");
+                        doc.hideByClass("js-wfm-form");
                         doc.showByClass("eraser-task");
                         doc.showByClass("ship-it");
                     }
@@ -460,6 +472,7 @@
          * @param wfmTaskLabel
          */
         updateTaskFrontEnd: function(wfmTaskID, wfmTaskName, wfmTaskLabel) {
+            var doc = this;
             /** global: domHelper */
             var ticketID = domHelper.ticket.getTicketInfo().helpdesk_ticket.display_id;
             if (wfmTaskLabel === undefined) {
@@ -472,17 +485,14 @@
                     var wfmTaskURL = "https://my.workflowmax.com/job/jobtaskview.aspx?id=" + wfmTaskID;
 
                     taskLink.className = "wfm-task-link";
-                    taskLink.setAttribute("data-wfm-job-id", data.wfmJobID);
-                    taskLink.setAttribute("data-wfm-task-id", wfmTaskID);
-                    taskLink.setAttribute("data-wfm-task-name", wfmTaskName);
-                    taskLink.setAttribute("data-wfm-task-label", wfmTaskLabel);
                     taskLink.href = wfmTaskURL;
                     taskLink.innerHTML = data.wfmJobID + ": " + wfmTaskName + wfmTaskLabel;
                     taskHeader.innerHTML = "Task detected: ";
                     taskHeader.appendChild(taskLink);
                 })
                 .fail(function(err) {
-                    alert(err.response);
+                    alert("Error updating task");
+                    console.log(err.response);
                 });
         },
         /**
@@ -507,7 +517,7 @@
                 .done(function(data) {
                     var response = new window.DOMParser().parseFromString(data.response, "text/html");
                     var staff = response.getElementsByTagName("staff");
-                    jQuery(staff).each(function() {
+                    $(staff).each(function() {
                         if ($(this).getElementsByTagName("email")[0].innerHTML === agentEmail) {
                             agentID = $(this).getElementsByTagName("id")[0].innerHTML;
 
@@ -523,13 +533,14 @@
                                 doc.$request.post(wfmTimesheetURL, {body: logTimeXML})
                                     .done(function(data) {
                                         console.log(data);
-                                        jQuery(doc.$container.getElementsByClassName("ship-it-icon")).each(function() {
+                                        $(doc.$container.getElementsByClassName("ship-it-icon")).each(function() {
                                             $(this).className = "fa fa-ship";
                                         });
                                         doc.$container.getElementsByClassName("ship-it")[0].innerHTML = doc.$container.getElementsByClassName("ship-it")[0].innerHTML.replace("I've spent all day here", "Shipped");
                                     })
                                     .fail(function(err) {
-                                        alert(err.response);
+                                        alert("Error updating WorkflowMax task for full day");
+                                        console.log(err.response);
                                     });
                             }
                         }
@@ -539,7 +550,8 @@
                     }
                 })
                 .fail(function(err) {
-                    alert("Staff ID not found:" + err.response);
+                    alert("Staff ID not found");
+                    console.log(err.response);
                 });
         },
         /**
@@ -554,4 +566,4 @@
             this.checkForConnectedClient();
         }
     };
-})();
+})(jQuery);

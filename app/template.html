@@ -21,17 +21,22 @@
                 <h4 class="header-task-client"><em>Client detected: <a class="wfm-client-link" href=""> EMPTY </a></em></h4>
                 <div class="btn ship-it"><i class="fa fa-sun-o ship-it-icon" aria-hidden="true"></i> I've spent all day here <i class="fa fa-moon-o ship-it-icon" aria-hidden="true"></i></div>
 
-                <div class="btn-group dropdown-job">
-                    <a class="btn dropdown-job-button" data-toggle="dropdown">Select Job...
-                        <span class="caret pull-right"></span></a>
-                    <ul class="dropdown-job-content dropdown-menu"></ul>
-                </div>
-
-                <div class="btn-group dropdown-task">
-                    <a class="btn dropdown-task-button" data-toggle="dropdown">Select Task...
-                        <span class="caret pull-right"></span></a>
-                    <ul class="dropdown-task-content dropdown-menu"></ul>
-                </div>
+                <form class="ui-form content dont-validate js-wfm-form">
+                    <ul class="cnt dont-validate">
+                        <li class="dropdown_blank default_group field">
+                            <label class="" for="wfm_job">Job</label>
+                            <select id="wfm_job" class="dropdown_blank js-job-selector">
+                                <option>Loading...</option>
+                            </select>
+                        </li>
+                        <li class="dropdown_blank default_group field">
+                            <label class="" for="wfm_task">Task</label>
+                            <select id="wfm_task" class="dropdown_blank js-task-selector">
+                                <option>Loading...</option>
+                            </select>
+                        </li>
+                    </ul>
+                </form>
 
                 <div class="btn creator-task"><i class="fa fa-plus" aria-hidden="true"></i>  Create</div>
                 <div class="btn warning eraser-task"><i class="fa fa-trash-o" aria-hidden="true"></i>  Reset</div>
