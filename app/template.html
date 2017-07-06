@@ -8,7 +8,7 @@
 
             <!--Client-only features-->
             <div class="holder-client">
-                <h3 class="header-client">Client detected as <a class="wfm-client-link" href=""> EMPTY </a></h3>
+                <h4 class="header-client">Client detected as <a class="wfm-client-link" href=""> EMPTY </a></h4>
                 <div class="btn creator-client"><i class="fa fa-plus" aria-hidden="true"></i>  Create</div>
                 <div class="btn detective-client"><i class="fa fa-refresh" aria-hidden="true"></i>  Detect</div>
                 <div class="btn confirmer-client"><i class="fa fa-floppy-o" aria-hidden="true"></i>  Save</div>
@@ -17,9 +17,11 @@
 
             <!--Task-only features-->
             <div class="holder-task">
-                <h3 class="header-task">Task detected: <a class="wfm-task-link" href=""> EMPTY </a></h3>
-                <h4 class="header-task-client"><em>Client detected: <a class="wfm-client-link" href=""> EMPTY </a></em></h4>
-                <div class="btn ship-it"><i class="fa fa-sun-o ship-it-icon" aria-hidden="true"></i> I've spent all day here <i class="fa fa-moon-o ship-it-icon" aria-hidden="true"></i></div>
+                <h4 class="header-task">Task detected: <a class="wfm-task-link" href=""> EMPTY </a></h4>
+                <h5 class="header-task-client"><em>Client detected: <a class="wfm-client-link" href=""> EMPTY </a></em></h5>
+                <div class="btn ship-it"><i class="fa fa-sun-o ship-it-icon" aria-hidden="true"></i>
+                    <span class="js-ship-it-text">I've spent all day here</span>
+                <i class="fa fa-moon-o ship-it-icon" aria-hidden="true"></i></div>
 
                 <form class="ui-form content dont-validate js-wfm-form">
                     <ul class="cnt dont-validate">
@@ -32,7 +34,7 @@
                         <li class="dropdown_blank default_group field">
                             <label class="" for="wfm_task">Task</label>
                             <select id="wfm_task" class="dropdown_blank js-task-selector">
-                                <option>Loading...</option>
+                                <option>Requires job selection...</option>
                             </select>
                         </li>
                     </ul>
