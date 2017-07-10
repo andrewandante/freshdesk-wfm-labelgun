@@ -15,6 +15,7 @@
         // In-memory storage for tasks and jobs
         jobs: {},
         tasks: {},
+        staff: {},
         /**
          * Function to create a new WFM task based on the job selected in the dropdown and the ticket number
          * Will also save the connection to the database once chosen
@@ -65,6 +66,7 @@
                                     var taskID = $(response).find("id").text();
                                     doc.updateTaskFrontEnd(taskID, "Helpdesk ticket #", ticketID);
                                     doc.confirmNewTask(taskID, "Helpdesk ticket #", ticketID);
+                                    doc.assignAgentToTask(jobID, taskID);
                                 });
                             }
                         }
@@ -145,7 +147,7 @@
          * @param wfmClientID
          */
         populateJobDropdown: function(wfmClientID) {
-            var wfmURL = "https://api.workflowmax.com/job.api/client/" + wfmClientID + "?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>&query=";
+            var wfmURL = "https://api.workflowmax.com/job.api/client/" + wfmClientID + "?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
             var dropdownContent = this.$container.getElementsByClassName("js-job-selector")[0];
             var doc = this;
             this.$request.get(wfmURL)
@@ -258,7 +260,7 @@
                 });
         },
         /**
-         * Saves the Task informaton to the Freshdesk DB storage, updates buttons.
+         * Saves the Task information to the Freshdesk DB storage, updates buttons.
          * @TODO hook this into the timekeeper so that it picks it up somehow.
          * @param event - the click event ie you picking something in the dropdown
          */
@@ -311,7 +313,7 @@
                     doc.showByClass("eraser-task");
                     doc.showByClass("ship-it");
                     doc.updateTaskFrontEnd(wfmTaskID, wfmTaskName, wfmTaskLabel);
-                    doc.$container.getElementsByClassName("header-task")[0].innerHTML = doc.$container.getElementsByClassName("header-task")[0].innerHTML.replace("detected", "saved");
+                    doc.$container.getElementsByClassName("header-task")[0].innerHTML.replace("detected", "saved");
                 })
                 .fail(function(err) {
                     alert("Error confirming new WorkflowMax task");
@@ -484,21 +486,66 @@
                 });
         },
         /**
+         * Brings in the list of WFM staff so that we can easily map ID to email address.
+         */
+        detectStaff: function() {
+            var doc = this;
+            var wfmStafflistURL = "https://api.workflowmax.com/staff.api/list?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
+            doc.$request.get(wfmStafflistURL)
+            .fail(function(err) {
+                alert("Error retrieving staff list");
+                console.error(err);
+            })
+            .done(function(data) {
+                var response = $(data.response);
+                var staff = $('Staff', response);
+                $(staff).each(function() {
+                    var $this = $(this);
+                    var agentEmail = $this.find("email").text();
+                    doc.staff[agentEmail.toLowerCase()] = $this.find("id").text();
+                });
+            });
+        },
+        /**
+         * Assigns the Agent to the WFM task so that they may submit time to it
+         * @param wfmJobID
+         * @param wfmTaskID
+         */
+        assignAgentToTask: function(wfmJobID, wfmTaskID) {
+            var wfmURL = "https://api.workflowmax.com/job.api/assign?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
+            /** global: domHelper */
+            var agentEmail = domHelper.getAgentEmail();
+            var agentID = this.staff[agentEmail.toLowerCase()];
+            if (!agentID) {
+                alert("No Workflow Max user found for email address: " + agentEmail);
+                return;
+            }
+            var assignAgentXML = "<Job>"
+                + "<ID>" + wfmJobID + "</ID>"
+                + "<add id='" + agentID + "' task='" + wfmTaskID + "'/>"
+                + "</Job>";
+
+            this.$request.put(wfmURL, {body: assignAgentXML})
+            .fail(function(err) {
+                console.error(err);
+            })
+            .done(function() {
+            });
+        },
+        /**
          * Magic button to push 8 hours of time against one ticket. Mucho Spaghetti here.
          */
         shipEight: function() {
             var doc = this;
             var ticketID = domHelper.ticket.getTicketInfo().helpdesk_ticket.display_id;
-            var wfmStafflistURL = "https://api.workflowmax.com/staff.api/list?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
             var wfmTimesheetURL = "https://api.workflowmax.com/time.api/add?apiKey=<%= iparam.wfm_api_key %>&accountKey=<%= iparam.wfm_acc_key %>";
-
             this.$db.get("ticket:" + ticketID + ":job")
             .fail(function(err) {
                 alert("Couldn't read Job from DB.");
                 console.error(err);
             })
             .done(function(data) {
-                var jobID = data.wfmJobId;
+                var jobID = data.wfmJobID;
                 doc.$db.get("ticket:" + ticketID + ":task")
                 .fail(function(err) {
                     alert("Couldn't read Task from DB.");
@@ -510,56 +557,37 @@
                         taskName += data.wfmTaskLabel;
                     }
                     var taskID = data.wfmTaskID;
+                    doc.assignAgentToTask(jobID, taskID);
                     /** global: domHelper */
                     var agentEmail = domHelper.getAgentEmail();
-                    var agentID = 0;
+                    var agentID = doc.staff[agentEmail.toLowerCase()];
                     var date = new Date();
                     // Hacked together datestring to ensure a) month/day have 2 digits each and b) it fits WFM convention
                     var dateString = "" + date.getFullYear() + ("0" + (date.getMonth() + 1)).slice(-2) + ("0" + date.getDate()).slice(-2);
 
-                    // List all staff and get ID of one that matches the agent email
-                    doc.$request.get(wfmStafflistURL)
-                    .fail(function(err) {
-                        alert("Staff ID not found");
-                        console.error(err);
-                    })
-                    .done(function(data) {
-                        var response = $(data.response);
-                        var staff = $('Staff', response);
-                        $(staff).each(function() {
-                            var $this = $(this);
-                            if ($this.find("email").text() === agentEmail) {
-                                agentID = $this.find("id").text();
-
-                                if (confirm("You want to ship 8 hours against the task " + taskName + "?")) {
-                                    var logTimeXML = "<Timesheet>"
-                                        + "<Job>" + jobID + "</Job>"
-                                        + "<Task>" + taskID + "</Task>"
-                                        + "<Staff>" + agentID + "</Staff>"
-                                        + "<Date>" + dateString + "</Date>"
-                                        + "<Minutes>480</Minutes>"
-                                        + "<Note>Shipped from Freshdesk</Note>"
-                                        + "</Timesheet>";
-                                    doc.$request.post(wfmTimesheetURL, {body: logTimeXML})
-                                    .done(function() {
-                                        var icons = $(doc.$container).find('i.ship-it-icon');
-                                        $(icons).each(function() {
-                                            var $this = $(this);
-                                            $this.attr('class', 'fa fa-ship');
-                                        });
-                                        $(doc.$container).find('.js-ship-it-text').text("Shipped");
-                                    })
-                                    .fail(function(err) {
-                                        alert("Error updating WorkflowMax task for full day");
-                                        console.error(err);
-                                    });
-                                }
-                            }
+                    if (confirm("You want to ship 8 hours against the task " + taskName + "?")) {
+                        var logTimeXML = "<Timesheet>"
+                            + "<Job>" + jobID + "</Job>"
+                            + "<Task>" + taskID + "</Task>"
+                            + "<Staff>" + agentID + "</Staff>"
+                            + "<Date>" + dateString + "</Date>"
+                            + "<Minutes>480</Minutes>"
+                            + "<Note>Shipped from Freshdesk</Note>"
+                            + "</Timesheet>";
+                        doc.$request.post(wfmTimesheetURL, {body: logTimeXML})
+                        .done(function() {
+                            var icons = $(doc.$container).find('i.ship-it-icon');
+                            $(icons).each(function() {
+                                var $this = $(this);
+                                $this.attr('class', 'fa fa-ship');
+                            });
+                            $(doc.$container).find('.js-ship-it-text').text("Shipped");
+                        })
+                        .fail(function(err) {
+                            alert("Error updating WorkflowMax task for full day");
+                            console.error(err);
                         });
-                        if (agentID === 0) {
-                            alert("No Workflow Max user found for email address: " + agentEmail);
-                        }
-                    });
+                    }
                 });
             });
         },
@@ -573,6 +601,8 @@
                 this.checkForConnectedTask();
             }
             this.checkForConnectedClient();
+            this.detectStaff();
+
         }
     };
 })(jQuery);
